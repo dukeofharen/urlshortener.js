@@ -1,0 +1,11 @@
+{
+	"name": "urlshortener",
+	"description": "Node.js URL shortener",
+	"version": "0.0.1",
+	"dependencies": {
+		"body-parser": "^1.7.0",
+		"express": "3.x",
+		"mysql": "*",
+		"request": "*"
+	}
+}
