@@ -1,5 +1,5 @@
 # Node.js + Express.js URL shortener
-A simple URL shortener created with Node.js + Express.js + MySQL. This project is part of a tutorial: <http://duco.cc/url-shortener-in-node-js-express-js-mysql-tutorial-learning-by-doing/>.
+A simple URL shortener created with Node.js + Express.js + MySQL. This project is part of a tutorial: <https://ducode.org/url-shortener-in-node-js-express-js-mysql-tutorial-learning-by-doing.html>.
 
 ## Installation
 
