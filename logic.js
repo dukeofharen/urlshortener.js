@@ -11,15 +11,25 @@
 * 407: the vanity string has to contain more characters
 * 408: maximum number of URL's per hour exceeded
 */
+
+var AWS = require("aws-sdk");
 var mysql = require("mysql");
 var req = require("request");
 var cons = require("./constants");
 var crypto = require('crypto');
+AWS.config.apiVersions = {
+    rds: '2014-10-31',
+};
+AWS.config.update({
+	region: "us-east-1d",
+	endpoint: "cmpe281-team11.ckeca33m2obn.us-east-1.rds.amazonaws.com"
+});
 var pool = mysql.createPool({
 		host:cons.host,
 		user:cons.user,
 		password:cons.password,
-		database:cons.database
+		database:cons.database,
+		port:cons.port
 	});
 
 //onSuccess: the method which should be executed if the hash has been generated successfully
