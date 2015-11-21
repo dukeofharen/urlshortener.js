@@ -17,6 +17,9 @@ var mysql = require("mysql");
 var req = require("request");
 var cons = require("./constants");
 var crypto = require('crypto');
+
+var queueUrl = "https://sqs.us-east-1.amazonaws.com/060340690398/CMPE281-Team11-new-shortlinks";
+
 AWS.config.apiVersions = {
     rds: '2014-10-31',
 };
@@ -31,6 +34,10 @@ var pool = mysql.createPool({
 		database:cons.database,
 		port:cons.port
 	});
+
+// Instantiate SQS.
+var sqs = new AWS.SQS({region: 'us-east-1'});
+
 
 //onSuccess: the method which should be executed if the hash has been generated successfully
 //onError: if there was an error, this function will be executed
@@ -80,6 +87,8 @@ function generateHash(onSuccess, onError, retryCount, url, request, response, co
             }
         }
     });
+	
+	sentMessage(url, hash); 
 }
 
 //The function that is executed when there's an error
@@ -143,6 +152,10 @@ var getUrl = function(segment, request, response){
 
 //This function adds attempts to add an URL to the database. If the URL returns a 404 or if there is another error, this method returns an error to the client, else an object with the newly shortened URL is sent back to the client.
 var addUrl = function(url, request, response, vanity){
+	console.log(url);
+	//sentMessage(url, "abc");
+	//receiveMessage();
+	
 	pool.getConnection(function(err, con){
 		if(url){
 			url = decodeURIComponent(url).toLowerCase();
@@ -165,6 +178,8 @@ var addUrl = function(url, request, response, vanity){
 						}
 						if(!err && rows.length > 0){
 							response.send(urlResult(rows[0].segment, true, 100));
+							//sentMessage(url, rows[0].segment); 
+							
 						}
 						else{
 							req(url, function(err, res, body){
@@ -190,6 +205,50 @@ var addUrl = function(url, request, response, vanity){
 	});
 };
 
+
+//Sent url to message bus for CP instance
+var sentMessage = function(url, short_url) {
+	var message = {
+		shorturl: short_url,
+		originurl: url
+	};
+    var params = {
+        MessageBody: JSON.stringify(message),
+        QueueUrl: queueUrl,
+        DelaySeconds: 0
+    };
+	
+	
+	sqs.sendMessage(params, function(err, data) {
+	    if (err) {
+	        console.log('ERR', err);
+	    }
+
+	    console.log(data);
+	});
+
+
+};
+
+
+
+//receive url from message bus for LR instance
+var receiveMessage = function() {
+    var params = {
+        QueueUrl: queueUrl,
+        VisibilityTimeout: 60 //600 10 min wait time for anyone else to process.
+    };
+    
+	sqs.receiveMessage(params, function(err, data) {
+	    if (err) {
+	        console.log('ERR', err);
+	    }
+
+	    console.log(data);
+	});
+};
+
+
 //This method looks up stats of a specific short URL and sends it to the client
 var whatIs = function(url, request, response){
 	pool.getConnection(function(err, con){
@@ -211,42 +270,8 @@ var whatIs = function(url, request, response){
 //This function returns the correct IP address. Node.js apps normally run behind a proxy, so the remoteAddress will be equal to the proxy. A proxy sends a header "X-Forwarded-For", so if this header is set, this IP address will be used.
 function getIP(request){
 	return request.header("x-forwarded-for") || request.connection.remoteAddress;
-};
-
-//added by jianxin
-function getStats(segment, request, response){
-	pool.getConnection(function(err, con){
-		var url_id = null;
-		//we have the segment at first; have to retrieve the id in the urls table
-		con.query(cons.get_query.replace("{SEGMENT}", con.escape(segment)), function(err, rows){
-			console.log("error: " + err + " rows: " + rows);
-			if(err || rows.length == 0){
-				console.log("something's wrong here");
-				response.send({result: false});
-			}
-			else{
-				url_id = rows[0].id;
-				console.log(url_id);
-				con.query(cons.stats_query.replace("{URL_ID}", url_id), function(err, rows){
-					if(err || rows.length == 0){
-						response.send({result: false});
-					}else{
-						var resultSet = {};
-						resultSet.result = true;
-						resultSet.rows = rows;
-						resultSet.counts = rows.length;
-						response.send(resultSet);
-					}
-				}); //end of query()
-			}
-		});
-		
-		con.release();
-	}); //end of getConnection()
-};
-// end
+}
 
 exports.getUrl = getUrl;
 exports.addUrl = addUrl;
 exports.whatIs = whatIs;
-exports.getStats = getStats;
