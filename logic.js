@@ -211,8 +211,42 @@ var whatIs = function(url, request, response){
 //This function returns the correct IP address. Node.js apps normally run behind a proxy, so the remoteAddress will be equal to the proxy. A proxy sends a header "X-Forwarded-For", so if this header is set, this IP address will be used.
 function getIP(request){
 	return request.header("x-forwarded-for") || request.connection.remoteAddress;
-}
+};
+
+//added by jianxin
+function getStats(segment, request, response){
+	pool.getConnection(function(err, con){
+		var url_id = null;
+		//we have the segment at first; have to retrieve the id in the urls table
+		con.query(cons.get_query.replace("{SEGMENT}", con.escape(segment)), function(err, rows){
+			console.log("error: " + err + " rows: " + rows);
+			if(err || rows.length == 0){
+				console.log("something's wrong here");
+				response.send({result: false});
+			}
+			else{
+				url_id = rows[0].id;
+				console.log(url_id);
+				con.query(cons.stats_query.replace("{URL_ID}", url_id), function(err, rows){
+					if(err || rows.length == 0){
+						response.send({result: false});
+					}else{
+						var resultSet = {};
+						resultSet.result = true;
+						resultSet.rows = rows;
+						resultSet.counts = rows.length;
+						response.send(resultSet);
+					}
+				}); //end of query()
+			}
+		});
+		
+		con.release();
+	}); //end of getConnection()
+};
+// end
 
 exports.getUrl = getUrl;
 exports.addUrl = addUrl;
 exports.whatIs = whatIs;
+exports.getStats = getStats;

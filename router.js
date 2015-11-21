@@ -20,9 +20,18 @@
 			response.send("OK");
 		});
 		
+		//added by jianxin
+		app.get('/stats', function(request, response) {
+			logic.getStats(request.param('segment'), request, response);
+			// console.log("router is working\n");
+		});
+		//end
+		
 		app.get('/:segment', function(request, response){
 			logic.getUrl(request.params.segment, request, response);
 		});
+
+		
 	}
 
 	exports.route = route;
