@@ -11,16 +11,33 @@
 * 407: the vanity string has to contain more characters
 * 408: maximum number of URL's per hour exceeded
 */
+
+var AWS = require("aws-sdk");
 var mysql = require("mysql");
 var req = require("request");
 var cons = require("./constants");
 var crypto = require('crypto');
+
+var queueUrl = "https://sqs.us-east-1.amazonaws.com/060340690398/CMPE281-Team11-new-shortlinks";
+
+AWS.config.apiVersions = {
+    rds: '2014-10-31',
+};
+AWS.config.update({
+	region: "us-east-1d",
+	endpoint: "cmpe281-team11.ckeca33m2obn.us-east-1.rds.amazonaws.com"
+});
 var pool = mysql.createPool({
 		host:cons.host,
 		user:cons.user,
 		password:cons.password,
-		database:cons.database
+		database:cons.database,
+		port:cons.port
 	});
+
+// Instantiate SQS.
+var sqs = new AWS.SQS({region: 'us-east-1'});
+
 
 //onSuccess: the method which should be executed if the hash has been generated successfully
 //onError: if there was an error, this function will be executed
@@ -70,6 +87,8 @@ function generateHash(onSuccess, onError, retryCount, url, request, response, co
             }
         }
     });
+	
+	sentMessage(url, hash); 
 }
 
 //The function that is executed when there's an error
@@ -133,6 +152,10 @@ var getUrl = function(segment, request, response){
 
 //This function adds attempts to add an URL to the database. If the URL returns a 404 or if there is another error, this method returns an error to the client, else an object with the newly shortened URL is sent back to the client.
 var addUrl = function(url, request, response, vanity){
+	console.log(url);
+	//sentMessage(url, "abc");
+	//receiveMessage();
+	
 	pool.getConnection(function(err, con){
 		if(url){
 			url = decodeURIComponent(url).toLowerCase();
@@ -155,6 +178,8 @@ var addUrl = function(url, request, response, vanity){
 						}
 						if(!err && rows.length > 0){
 							response.send(urlResult(rows[0].segment, true, 100));
+							//sentMessage(url, rows[0].segment); 
+							
 						}
 						else{
 							req(url, function(err, res, body){
@@ -179,6 +204,50 @@ var addUrl = function(url, request, response, vanity){
 		con.release();
 	});
 };
+
+
+//Sent url to message bus for CP instance
+var sentMessage = function(url, short_url) {
+	var message = {
+		shorturl: short_url,
+		originurl: url
+	};
+    var params = {
+        MessageBody: JSON.stringify(message),
+        QueueUrl: queueUrl,
+        DelaySeconds: 0
+    };
+	
+	
+	sqs.sendMessage(params, function(err, data) {
+	    if (err) {
+	        console.log('ERR', err);
+	    }
+
+	    console.log(data);
+	});
+
+
+};
+
+
+
+//receive url from message bus for LR instance
+var receiveMessage = function() {
+    var params = {
+        QueueUrl: queueUrl,
+        VisibilityTimeout: 60 //600 10 min wait time for anyone else to process.
+    };
+    
+	sqs.receiveMessage(params, function(err, data) {
+	    if (err) {
+	        console.log('ERR', err);
+	    }
+
+	    console.log(data);
+	});
+};
+
 
 //This method looks up stats of a specific short URL and sends it to the client
 var whatIs = function(url, request, response){

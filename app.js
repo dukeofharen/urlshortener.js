@@ -7,6 +7,10 @@ app.use(express.bodyParser());
 app.use(express.urlencoded());
 app.use(express.json());
 
-app.listen(3500);
-console.log("Started listening at port 3500");
+app.set('port', (process.env.PORT || 5000));
+
+app.listen(app.get('port'), function() {
+  console.log('Node app is running on port', app.get('port'));
+});
+
 router.route(app);
