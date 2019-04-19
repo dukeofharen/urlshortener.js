@@ -1,4 +1,4 @@
-exports.root_url = "http://d.co/";
+exports.root_url = "http://localhost:3500/";
 exports.min_vanity_length = 4;
 exports.num_of_urls_per_hour = 50;
 
@@ -11,5 +11,5 @@ exports.check_ip_query = 'SELECT COUNT(id) as counted FROM urls WHERE datetime_a
 
 exports.host = 'localhost';
 exports.user = 'root';
-exports.password = 'geheim';
-exports.database = 'urlsh';
+exports.password = 'root';
+exports.database = 'urlshortner.js';

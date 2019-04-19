@@ -3,9 +3,9 @@
 	"description": "Node.js URL shortener",
 	"version": "0.0.1",
 	"dependencies": {
-		"body-parser": "^1.7.0",
-		"express": "3.x",
-		"mysql": "*",
-		"request": "*"
+		"body-parser": "^1.18.3",
+		"express": "^3.21.2",
+		"mysql": "^2.17.1",
+		"request": "^2.88.0"
 	}
 }
